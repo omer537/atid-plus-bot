@@ -5,7 +5,7 @@ import google.generativeai as genai
 st.set_page_config(page_title="עתיד + | מערכת תכנון הוראה", page_icon="🚀", layout="centered")
 
 # !!! שים כאן את המפתח שלך !!!
-GOOGLE_API_KEY = "YOUR_API_KEY_HERE" 
+GOOGLE_API_KEY = "AIzaSyC_k0wykusqS8mXPwBg4xd2FcZno5S5Ci0" 
 
 MAX_QUESTIONS = 5 
 
@@ -245,3 +245,4 @@ if user_input := st.chat_input("הקלד כאן..."):
     st.session_state.messages.append({"role": "assistant", "content": response_text})
     with st.chat_message("assistant", avatar=bot_avatar):
         st.markdown(response_text)
+
