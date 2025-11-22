@@ -1,11 +1,15 @@
 import streamlit as st
 import google.generativeai as genai
+import requests  # חובה בשביל לשלוח ל-Make
 
 # --- הגדרות דף ---
 st.set_page_config(page_title="עתיד + | מערכת תכנון הוראה", page_icon="🚀", layout="centered")
 
-# !!! שים כאן את המפתח שלך !!!
-GOOGLE_API_KEY = "AIzaSyC_k0wykusqS8mXPwBg4xd2FcZno5S5Ci0" 
+# !!! שים כאן את המפתח החדש שלך (במקום זה שנחשף) !!!
+GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", "AIzaSyCIu2-K-NuqeSMbBIVGAKmF0uwyHUE_SCU")
+
+# !!! שים כאן את כתובת ה-Webhook מ-Make !!!
+MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/2efkpellfk7xbu3klqgneoavxlifxnqj"
 
 MAX_QUESTIONS = 5 
 
@@ -56,6 +60,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# חיבור למודלים
 if GOOGLE_API_KEY != "YOUR_API_KEY_HERE":
     genai.configure(api_key=GOOGLE_API_KEY)
     model_pro = genai.GenerativeModel('gemini-2.5-pro')
@@ -66,7 +71,6 @@ if "stage" not in st.session_state:
     st.session_state.stage = "setup_name"
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "אהלן. ברוך הבא למערכת התכנון של עתיד+. איך קוראים לך?"}]
-# הוספנו כאן את שדה ה-email
 if "teacher_data" not in st.session_state:
     st.session_state.teacher_data = {"name": "", "email": "", "location": "", "topic": "", "preferences": ""}
 if "lesson_plan_text" not in st.session_state:
@@ -74,7 +78,17 @@ if "lesson_plan_text" not in st.session_state:
 if "question_count" not in st.session_state:
     st.session_state.question_count = 0
 
-# --- הנחיות ---
+# --- פונקציות עזר והנחיות ---
+
+def send_to_make(data):
+    """פונקציה לשליחת הנתונים ל-Make"""
+    if not MAKE_WEBHOOK_URL or "YOUR_MAKE" in MAKE_WEBHOOK_URL:
+        return False
+    try:
+        response = requests.post(MAKE_WEBHOOK_URL, json=data)
+        return response.status_code == 200
+    except:
+        return False
 
 LESSON_FORMAT_PROMPT = """
 אתה המומחה הפדגוגי של חברת "עתיד +".
@@ -177,12 +191,10 @@ if user_input := st.chat_input("הקלד כאן..."):
 
     if st.session_state.stage == "setup_name":
         st.session_state.teacher_data["name"] = user_input
-        # שלב חדש: בקשת מייל
         response_text = f"היי {user_input}. לאיזה מייל לשלוח את המערך בסיום?"
         st.session_state.stage = "setup_email"
 
     elif st.session_state.stage == "setup_email":
-        # שמירת המייל ומעבר למיקום
         st.session_state.teacher_data["email"] = user_input
         response_text = "מעולה. איפה אתה מלמד?"
         st.session_state.stage = "setup_location"
@@ -236,13 +248,31 @@ if user_input := st.chat_input("הקלד כאן..."):
                 st.session_state.stage = "final_question"
 
     elif st.session_state.stage == "final_question":
+        # איסוף כל הנתונים לחבילה אחת
         final_doc = st.session_state.lesson_plan_text + f"\n\n**10. יעד אישי:**\n{user_input}"
+        payload = {
+            "teacher_name": st.session_state.teacher_data["name"],
+            "teacher_email": st.session_state.teacher_data["email"],
+            "topic": st.session_state.teacher_data["topic"],
+            "location": st.session_state.teacher_data["location"],
+            "lesson_plan": final_doc
+        }
+        
+        # שליחה ל-Make
+        with st.spinner("שולח את הסיכום למערכות עתיד+ ..."):
+            success = send_to_make(payload)
+            
         email = st.session_state.teacher_data['email']
-        response_text = f"התיעוד נשלח לכתובת: **{email}**. המון בהצלחה! 🚀"
-        st.balloons() 
+        if success:
+            response_text = f"התיעוד נשלח בהצלחה לכתובת: **{email}**. המון בהצלחה! 🚀"
+            st.balloons()
+        else:
+            # במקרה שאין חיבור ל-Make עדיין, מציגים הודעה נחמדה
+            response_text = f"התיעוד הושלם (עדיין לא חובר מייל אוטומטי). שמור את הסיכום מכאן. בהצלחה! 🚀"
+            st.balloons()
+
         st.session_state.stage = "finished"
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
     with st.chat_message("assistant", avatar=bot_avatar):
         st.markdown(response_text)
-
