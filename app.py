@@ -6,7 +6,7 @@ import requests  # חובה בשביל לשלוח ל-Make
 st.set_page_config(page_title="עתיד + | מערכת תכנון הוראה", page_icon="🚀", layout="centered")
 
 # !!! שים כאן את המפתח החדש שלך (במקום זה שנחשף) !!!
-GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", "AIzaSyCIu2-K-NuqeSMbBIVGAKmF0uwyHUE_SCU")
+GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", "AIzaSyDH2bXU7tEFj5FMs9CHuNrFiiF64nUuM0I")
 
 # !!! שים כאן את כתובת ה-Webhook מ-Make !!!
 MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/2efkpellfk7xbu3klqgneoavxlifxnqj"
@@ -276,3 +276,4 @@ if user_input := st.chat_input("הקלד כאן..."):
     st.session_state.messages.append({"role": "assistant", "content": response_text})
     with st.chat_message("assistant", avatar=bot_avatar):
         st.markdown(response_text)
+
